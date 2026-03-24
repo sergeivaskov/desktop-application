@@ -21,6 +21,13 @@ const logFileName = `at.${new Date().toISOString()}.log`.replace(/:/gi, '-');
 // Create log file stream
 const logStream = fs.createWriteStream(resolve(config.logger.directory, logFileName));
 
+// Create AI JSON log file stream
+const aiLogDir = resolve(__dirname, '../../../../../.cursor/logs');
+if (!fs.existsSync(aiLogDir)) {
+  fs.mkdirSync(aiLogDir, { recursive: true });
+}
+const aiLogStream = fs.createWriteStream(resolve(aiLogDir, 'electron.jsonl'), { flags: 'a' });
+
 logStream.on('open', () => {
 
   // Say hi
@@ -97,6 +104,28 @@ class Logger {
   }
 
   /**
+   * Helper to write JSON logs for AI
+   */
+  _writeAiLog(level, message, context = {}) {
+    if (aiLogStream.writable) {
+      try {
+        const logEntry = {
+          timestamp: Logger._getFormattedDateTime(),
+          level: level.toUpperCase(),
+          msg: message,
+          context: {
+            module: this.moduleName,
+            ...context
+          }
+        };
+        aiLogStream.write(JSON.stringify(logEntry) + '\n');
+      } catch (e) {
+        // Ignore JSON stringify errors
+      }
+    }
+  }
+
+  /**
    * Just debugging messages
    * @param  {String} message Debug message
    */
@@ -105,6 +134,7 @@ class Logger {
     console.log(`[D] ${chalk.dim(`[${Logger._getFormattedDateTime()}]`)} ${chalk.green(`[${this.moduleName}]`)} ${message}`);
     if (logStream.writable)
       logStream.write(`[D] [${Logger._getFormattedDateTime()}] [${this.moduleName}] ${message}\n`);
+    this._writeAiLog('debug', message);
 
   }
 
@@ -117,6 +147,7 @@ class Logger {
     console.log(`${chalk.yellow('[W]')}  ${chalk.dim(`[${Logger._getFormattedDateTime()}]`)} ${chalk.green(`[${this.moduleName}]`)} ${chalk.yellow(message)}`);
     if (logStream.writable)
       logStream.write(`[W] [${Logger._getFormattedDateTime()}] [${this.moduleName}] ${message}\n`);
+    this._writeAiLog('warning', message);
 
   }
 
@@ -165,6 +196,8 @@ class Logger {
         // Pipe into file
         if (logStream.writable)
           logStream.write(`[E] [${Logger._getFormattedDateTime()}] [${this.moduleName}] (API${error.statusCode}) ${message}: ${error}\n<BEGIN CONTEXT>\n${errorContext}\n<END CONTEXT>\n<BEGIN STACK TRACE>\n${stack}\n<END STACK TRACE>\n`);
+        
+        this._writeAiLog('error', `(API${error.statusCode}) ${message}: ${error}`, { errorContext, stack });
         return;
 
       }
@@ -181,6 +214,8 @@ class Logger {
         if (logStream.writable)
           logStream.write(`[E] [${Logger._getFormattedDateTime()}] [${this.moduleName}] (500) ${message}: ${error.message}${errorContext}\n<BEGIN STACK TRACE>\n${error.stack}\n<END STACK TRACE>\n`);
 
+        this._writeAiLog('error', `(500) ${message}: ${error.message}`, { errorContext, stack: error.stack });
+
       } else {
 
         // It's likely our custom errors
@@ -190,6 +225,8 @@ class Logger {
         // Pipe into file
         if (logStream.writable)
           logStream.write(`[E] [${Logger._getFormattedDateTime()}] [${this.moduleName}] (${error.code}) ${error.message}\n<BEGIN STACK TRACE>\n${error.stack}\n<END STACK TRACE>\n`);
+
+        this._writeAiLog('error', `(${error.code}) ${error.message}`, { stack: error.stack });
 
       }
 
@@ -218,6 +255,8 @@ class Logger {
       // Pipe into file
       if (logStream.writable)
         logStream.write(`[E] [${Logger._getFormattedDateTime()}] [${this.moduleName}] (${code}) ${message}\n<BEGIN STACK TRACE>\n${stackTrace}\n<END STACK TRACE>\n`);
+
+      this._writeAiLog('error', `(${code}) ${message}`, { stack: stackTrace });
 
       // Send to Sentry
       if (!disableCapture)
