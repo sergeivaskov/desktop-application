@@ -6,11 +6,12 @@
 
 const fs = require('fs');
 const { resolve } = require('path');
+const { randomUUID } = require('crypto');
 const chalk = require('chalk');
 const config = require('../base/config');
 
 const { Sentry: { Sentry } } = require('./sentry');
-const ApiError = require("@cattr/node/src/errors/api");
+const ApiError = require("@amazingcat/node-cattr/src/errors/api");
 
 // Checkings logs directory availability
 if (!fs.existsSync(config.logger.directory))
@@ -116,6 +117,10 @@ class Logger {
           context: {
             module: this.moduleName,
             ...context
+          },
+          extra: {
+            correlation_id: randomUUID(),
+            channel: this.moduleName
           }
         };
         aiLogStream.write(JSON.stringify(logEntry) + '\n');
