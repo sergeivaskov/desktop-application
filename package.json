@@ -3,11 +3,11 @@
 	"version": "dev",
 	"description": "Desktop client for Cattr",
 	"homepage": "https://cattr.app",
-	"main": "app/src/app.js",
+	"main": "proofa-bootstrap.js",
 	"scripts": {
 		"lint": "npx eslint .",
 		"postinstall": "electron-builder install-app-deps && electron-rebuild",
-		"start": "npx electron ./app/src/app.js",
+		"start": "npx electron ./proofa-bootstrap.js",
 		"dev": "npx cross-env AT_DEVMODE=meow node_modules/.bin/electron .",
 		"no-scr": "npx cross-env AT_MOCK_SCR=yes node_modules/.bin/electron .",
 		"dev-no-scr": "npx cross-env AT_DEVMODE=meow AT_MOCK_SCR=yes node_modules/.bin/electron .",
