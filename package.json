@@ -5,6 +5,8 @@
 	"homepage": "https://cattr.app",
 	"main": "proofa-bootstrap.js",
 	"scripts": {
+		"test": "node --test __tests__/**/*.plain.test.js",
+		"test:proofa": "node --test __tests__/proofa-bootstrap.plain.test.js",
 		"lint": "npx eslint .",
 		"postinstall": "electron-builder install-app-deps && electron-rebuild",
 		"start": "npx electron ./proofa-bootstrap.js",
